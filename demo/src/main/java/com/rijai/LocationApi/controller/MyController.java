@@ -1,15 +1,12 @@
 package com.rijai.LocationApi.controller;
 
-//import com.rijai.LocationApi.model.Country;
-import com.rijai.LocationApi.model.Dog;
-//import com.rijai.LocationApi.service.ICountryService;
-import com.rijai.LocationApi.service.IDogService;
+import com.rijai.LocationApi.model.*;
+import com.rijai.LocationApi.service.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.stereotype.Controller;
-//import org.springframework.ui.Model;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-//import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -20,7 +17,36 @@ import java.util.List;
 public class MyController {
     @Autowired
     private IDogService dogService;
+    @Autowired
+    private IAccountService accountService;
+    @Autowired
+    private IAdminService adminService;
+    @Autowired
+    private IUserService userService;
+    @Autowired
+    private JwtTokenService jwtTokenService;
 
+    @RequestMapping(value="/api/login", method= RequestMethod.POST)
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        System.out.println("Received login request for username: " + loginRequest);
+        
+        String username = loginRequest.getUsername();
+        String password = loginRequest.getPassword();
+
+        Account account = accountService.authenticate(username, password);
+
+        if (account != null) {
+            System.out.println("Authentication successful for user: " + username);
+            Role role = account.getRole();
+            String token = jwtTokenService.generateToken(account.getUsername(), role);
+            return ResponseEntity.ok(new AuthResponse(token));
+        } else {
+            System.out.println("Authentication failed for user: " + username);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+    }
+
+    
 
     @RequestMapping("/api/dogs")
     public List<Dog> findDogs(){
@@ -34,7 +60,8 @@ public class MyController {
 
     @RequestMapping(value="/api/add-dog", method= RequestMethod.POST)
     public Dog addDogSubmit(@RequestBody Dog dog) {
-        return dogService.addDog(dog);
+        System.out.println(dog);
+        return adminService.addDog(dog);
     }
 
     @RequestMapping(value="/api/update-dog/{id}", method=RequestMethod.PUT)
@@ -42,52 +69,45 @@ public class MyController {
         String requestUrl = request.getRequestURL().toString();
         System.out.println("Received request at URL: " + requestUrl);
             
-        return dogService.updateDog(id, updatedDog);
+        return adminService.updateDog(id, updatedDog);
     }
-    
 
     @RequestMapping(value="/api/delete-dog/{id}", method=RequestMethod.DELETE)
     public Dog deleteDog(@PathVariable int id)
     {
         System.out.println("deleting dog with id: " + id);
-        return dogService.deleteDog(id);
+        return adminService.deleteDog(id);
     }
 
-    /*
-     * 
-     * private ICountryService countryService;
-
-
-    @RequestMapping("/api/countries")
-    public List<Country> findCountries(){
-       return countryService.getCountries();
-    }
-
-    @RequestMapping(value = "/api/show-country/{id}")
-    public Country showCountry(@PathVariable long id) {
-       return countryService.getCountry(id);
-    }
-
-    @RequestMapping(value="/api/add-country", method= RequestMethod.POST)
-    public Country addCountrySubmit(@RequestBody Country country) {
-        return countryService.addCountry(country);
-    }
-
-    @RequestMapping(value="/api/update-country/{id}", method=RequestMethod.PUT)
-    public Country updateCountry(@PathVariable int id, @RequestBody Country updatedCountry, HttpServletRequest request) {
-        String requestUrl = request.getRequestURL().toString();
-        System.out.println("Received request at URL: " + requestUrl);
-            
-        return countryService.updateCountry(id, updatedCountry);
-    }
-    
-
-    @RequestMapping(value="/api/delete-country/{id}", method=RequestMethod.DELETE)
-    public Country deleteCountry(@PathVariable int id)
+    @RequestMapping(value="/api/add-user", method=RequestMethod.POST)
+    public Account addUser(@RequestBody User user)
     {
-        System.out.println("deleting country with id: " + id);
-        return countryService.deleteCountry(id);
+        System.out.println("error adding user: " + user);
+        return accountService.addAccount(user);
     }
-     */
+
+    @RequestMapping(value="/api/add-admin", method=RequestMethod.POST)
+    public Account addAdmin(@RequestBody Admin admin)
+    {
+        System.out.println("error adding admin: " + admin);
+        return accountService.addAccount(admin);
+    }
+
+    @RequestMapping(value = "/api/adopt-dog/{userId}", method = RequestMethod.POST)
+    public ResponseEntity<?> adoptDog(@PathVariable long userId, @RequestBody long dogId) {
+        try {
+            User user = (User) accountService.getAccount(userId);
+            Dog dog = dogService.getDog(dogId);
+            if (user != null) {
+                User adoptedUser = userService.adoptDog(dog, user);
+                return ResponseEntity.ok(adoptedUser);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adopting dog");
+        }
+    }
+
 
 }

@@ -1,6 +1,2 @@
-com\rijai\LocationApi\service\CountryService.class
-com\rijai\LocationApi\service\ICountryService.class
 com\rijai\LocationApi\DemoApplication.class
-com\rijai\LocationApi\model\Country.class
 com\rijai\LocationApi\controller\MyController.class
-com\rijai\LocationApi\repository\CountryRepository.class

@@ -16,6 +16,10 @@ public class Dog {
     private String health;
     private int distance;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     public Dog() {
     }
 
@@ -74,6 +78,14 @@ public class Dog {
 
     public void setDistance(int distance) {
         this.distance = distance;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     @Override
